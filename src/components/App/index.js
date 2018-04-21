@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-// import fetch from 'isomorphic-fetch';
 import {
     DEFAULT_QUERY,
     DEFAULT_HPP,
@@ -12,6 +11,7 @@ import {
 import Search from '../Search';
 import Button from '../Button';
 import Table from '../Table';
+import Loading, { ButtonWithLoading } from '../Loading';
 import axios from 'axios';
 import './index.css';
 
@@ -25,7 +25,8 @@ class App extends Component {
       results: null,
       searchKey: '',
       searchTerm: DEFAULT_QUERY,
-      error: null
+      error: null,
+      isLoading: false
     };
     this.needsToSearchTopStories = this.needsToSearchTopStories.bind(this);
     this.setSearchTopStories = this.setSearchTopStories.bind(this);
@@ -55,11 +56,14 @@ class App extends Component {
       results: {
         ...results,
         [searchKey]: { hits: updatedHits, page }
-      }
+      },
+      isLoading: false
     });
   }
 
   fetchSearchTopStories(searchTerm, page = 0) {
+    this.setState({ isLoading: true });
+
     axios(`${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${searchTerm}&${PARAM_PAGE}${page}&${PARAM_HPP}${DEFAULT_HPP}`)
       .then(result => this._isMounted && this.setSearchTopStories(result.data))
       .catch(error => this._isMounted && this.setState({error}));
@@ -97,6 +101,13 @@ class App extends Component {
     });
   }
 
+  // Lifecycle API - Mount Process (1)
+  // Deprecated!!
+  componentWillMount(){
+    this._isMounted = false;
+  }
+
+  // Lifecycle API - Mount Process (3)
   componentDidMount(){
     this._isMounted = true;
 
@@ -105,7 +116,8 @@ class App extends Component {
     this.fetchSearchTopStories(searchTerm);
   }
 
-  componentWillMount(){
+  // Lifecycle API - Unmount Process 
+  componentWillUnmount(){
     this._isMounted = false;
   }
 
@@ -114,7 +126,8 @@ class App extends Component {
       searchTerm,
       results,
       searchKey,
-      error
+      error,
+      isLoading
     } = this.state;
 
     const page = (
@@ -142,7 +155,7 @@ class App extends Component {
         </div>
         { error
           ? <div className="interactions">
-            <p>Something went wrong.</p>
+            <p>Something went wrong..</p>
           </div>
           : <Table
             list={list}
@@ -150,9 +163,14 @@ class App extends Component {
           />
         }
         <div className="interactions">
-          <Button onClick={() => this.fetchSearchTopStories(searchKey, page + 1)}>
+        {
+          <ButtonWithLoading
+            isLoading={isLoading}
+            onClick={() => this.fetchSearchTopStories(searchKey, page + 1)}>
             More
-          </Button>
+          </ButtonWithLoading>
+        }
+          
         </div>
       </div>
     );
